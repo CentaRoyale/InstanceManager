@@ -8,7 +8,7 @@ import 'package:http/http.dart' as http;
 Map<String, RemoteServer> servers = {};
 Map<String, String> serverIds = {};
 
-List<Remote> remotes = [Remote(Uri.parse("http://localhost:8080"))];
+List<Remote> remotes = [Remote(Uri.parse("http://localhost:9000"))];
 
 Future<RemoteServer> createServer(String id, String repo) async {
   Map<int, int> remotesAndServerCountMap = {};
@@ -53,14 +53,14 @@ class Remote {
   Remote(this.url);
 
   Future<RemoteServer> createServer(String id, String repo) async {
-    var r = await http.put(
-        Uri(
-          scheme: url.scheme,
-          host: url.host,
-          port: url.port,
-          path: url.path + "/create",
-        ),
-        body: json.encode({repo}));
+    var uri = Uri(
+      scheme: url.scheme,
+      host: url.host,
+      port: url.port,
+      path: url.path + "/create",
+    );
+    print(uri);
+    var r = await http.put(uri, body: json.encode({"repo": repo}));
     var data = json.decode(r.body);
     return RemoteServer(data["port"], data["ip"], id, data["editUrl"]);
   }
@@ -90,10 +90,10 @@ void main(List<String> args) async {
   var app = Router();
 
   app.put('/server/<id>', (Request request, String id) async {
+    var strData = await request.readAsString();
     var server = await createServer(
       id,
-      json.decode(utf8.decode(await request.read().first))["repo"] ??
-          "https://github.com/Xd-pro/testRepo",
+      (json.decode(strData)["repo"]) ?? "https://github.com/Xd-pro/testRepo",
     );
     return jsonEncode({
       "ip": server.ip,
@@ -101,9 +101,9 @@ void main(List<String> args) async {
     });
   });
 
-  app.delete('/server/<ip>/<port>', (Request request, String ip, int port) {
-    servers.remove(ip + ":" + port.toString());
-    serverIds.removeWhere((key, value) => value == ip + ":" + port.toString());
+  app.delete('/server/<ip>/<port>', (Request request, String ip, String port) {
+    servers.remove(ip + ":" + port);
+    serverIds.removeWhere((key, value) => value == ip + ":" + port);
     return Response.ok(jsonEncode({"success": true}));
   });
 
