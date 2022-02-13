@@ -59,10 +59,10 @@ class Remote {
       port: url.port,
       path: url.path + "/create",
     );
-    print(uri);
     var r = await http.put(uri, body: json.encode({"repo": repo}));
     var data = json.decode(r.body);
-    return RemoteServer(data["port"], data["ip"], id, data["editUrl"]);
+    return RemoteServer(
+        data["port"], data["ip"], id, Uri.parse(data["editUrl"]));
   }
 }
 
@@ -95,10 +95,15 @@ void main(List<String> args) async {
       id,
       (json.decode(strData)["repo"]) ?? "https://github.com/Xd-pro/testRepo",
     );
-    return jsonEncode({
+    if (servers.containsKey(id)) {
+      return Response.forbidden(json.encode({"error": "id already exists"}));
+    }
+    servers[id] = server;
+    await Future.delayed(Duration(seconds: 5));
+    return Response.ok(jsonEncode({
       "ip": server.ip,
       "port": server.port,
-    });
+    }));
   });
 
   app.delete('/server/<ip>/<port>', (Request request, String ip, String port) {
@@ -108,14 +113,28 @@ void main(List<String> args) async {
   });
 
   app.get("/server", (Request request) {
-    return Response.ok(jsonEncode(servers.values.map((server) {
-      return {
+    return Response.ok(jsonEncode(serverIds.map((id, serverKey) {
+      var server = servers[serverKey];
+      return MapEntry(id, {
         "ip": server.ip,
         "port": server.port,
         "id": server.id,
-        "editUrl": server.editUrl,
-      };
-    }).toList()));
+        "editUrl": server.editUrl.toString(),
+      });
+    })));
+  });
+
+  app.get("/server/<id>", (Request request, String id) {
+    if (!serverIds.containsKey(id)) {
+      return Response.notFound(json.encode({"error": "id not found"}));
+    }
+    var server = servers[serverIds[id]];
+    return Response.ok(json.encode({
+      "ip": server.ip,
+      "port": server.port,
+      "id": server.id,
+      "editUrl": server.editUrl.toString(),
+    }));
   });
   var server = await io.serve(app, 'localhost', 8080);
 }

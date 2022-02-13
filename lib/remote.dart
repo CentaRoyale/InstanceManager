@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'dart:io';
-import 'dart:math';
 
 import 'package:server_scaler/utils/properties.dart';
 import 'package:server_scaler/utils/range.dart';
@@ -14,7 +13,10 @@ final Map<int, LocalServer> servers = {};
 
 const MAIN = 'http://localhost:8080';
 
+String ip;
 void main(List<String> args) async {
+  ip = await File("ip").readAsString();
+
   var app = Router();
 
   app.put("/create", (Request request) async {
@@ -40,8 +42,8 @@ void main(List<String> args) async {
     server.start();
     return Response.ok(jsonEncode({
       "port": port,
-      "ip": InternetAddress.anyIPv4.address,
-      "editUrl": "http://${InternetAddress.anyIPv4.address}:9000/server/$port",
+      "ip": ip,
+      "editUrl": "http://${ip}:9000/server/$port",
     }));
   });
 
@@ -74,8 +76,7 @@ class LocalServer {
 
   _onExit(int exitCode) async {
     open = false;
-    await http.delete(
-        Uri.parse(MAIN + "/server/${InternetAddress.anyIPv4.address}/$port"));
+    await http.delete(Uri.parse(MAIN + "/server/${ip}/$port"));
     onExit(exitCode);
   }
 }
