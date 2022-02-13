@@ -1,4 +1,4 @@
 Todo:
 ✅Main manager
-❌Remotes
+✅Remotes
 ❌Basic tests
