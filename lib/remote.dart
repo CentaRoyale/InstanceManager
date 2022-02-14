@@ -33,6 +33,7 @@ void main(List<String> args) async {
     var server = LocalServer(
       port,
       data["repo"],
+      data["id"],
       (exitCode) {
         servers.remove(port);
       },
@@ -55,8 +56,9 @@ class LocalServer {
   bool open = false;
   String repo;
   Function(int) onExit;
+  String id;
 
-  LocalServer(this.port, this.repo, this.onExit);
+  LocalServer(this.port, this.repo, this.id, this.onExit);
 
   Future<void> start() async {
     open = true;
@@ -64,6 +66,7 @@ class LocalServer {
       await Directory("instances/$port").delete(recursive: true);
     }
     await Process.run("git", ["clone", repo, "instances/$port"]);
+    File("instances/$port/id").writeAsString(id);
     await changePort(File("instances/$port/server.properties"), port);
     var proc = await Process.start(
         "instances/$port/start.cmd".replaceAll("/", Platform.pathSeparator),

@@ -59,7 +59,7 @@ class Remote {
       port: url.port,
       path: url.path + "/create",
     );
-    var r = await http.put(uri, body: json.encode({"repo": repo}));
+    var r = await http.put(uri, body: json.encode({"repo": repo, "id": id}));
     var data = json.decode(r.body);
     return RemoteServer(
         data["port"], data["ip"], id, Uri.parse(data["editUrl"]));
@@ -71,6 +71,7 @@ class RemoteServer {
   String ip;
   String id;
   Uri editUrl;
+  Map<String, dynamic> data;
 
   RemoteServer(this.port, this.ip, this.id, this.editUrl);
 
@@ -106,6 +107,13 @@ void main(List<String> args) async {
     }));
   });
 
+  app.post("/server/<id>", (Request request, String id) async {
+    var strData = await request.readAsString();
+    var server = servers[id];
+    server.data = json.decode(strData);
+    return Response.ok(json.encode({"success": true}));
+  });
+
   app.delete('/server/<ip>/<port>', (Request request, String ip, String port) {
     servers.remove(ip + ":" + port);
     serverIds.removeWhere((key, value) => value == ip + ":" + port);
@@ -120,6 +128,7 @@ void main(List<String> args) async {
         "port": server.port,
         "id": server.id,
         "editUrl": server.editUrl.toString(),
+        "data": server.data
       });
     })));
   });
@@ -134,6 +143,7 @@ void main(List<String> args) async {
       "port": server.port,
       "id": server.id,
       "editUrl": server.editUrl.toString(),
+      "data": server.data
     }));
   });
   var server = await io.serve(app, 'localhost', 8080);
